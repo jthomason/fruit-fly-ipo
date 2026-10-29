@@ -1,1 +1,1 @@
-It never sees the stock price. Only the fundamentals from the model. Below fair value tastes like sugar, so it buys. Above fair value tastes bitter, so it sells. An earnings miss? Bitter.
+It never sees the stock price. It values the company only from the numbers reported so far: revenue, growth, margins. Below its fair value tastes like sugar, so it buys. Above it tastes bitter, so it sells. An earnings miss? Bitter.

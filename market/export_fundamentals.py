@@ -1,6 +1,7 @@
 """Re-run ant_ipo_mc.py unchanged (same seed, same draws) while recording, every trading day, the market's
 fundamental fair value (the model's own EV/NTM multiple rule on the fundamentals revealed so far).
-Also saves the true and consensus quarterly revenue paths, the price-war day and the DCF value per path.
+Also saves the true and consensus quarterly revenue paths and margins, the price-war day, the Broadcom cost and the
+DCF value per path.
 Writes market/ant_ipo_fund.npz (first 4,000 paths, matching ant_ipo_sim.npz)."""
 import numpy as np
 src = open("market/ant_ipo_mc.py").read()
@@ -12,5 +13,6 @@ z = np.load("market/ant_ipo_sim.npz"); K = 4000
 assert np.allclose(z["mc_path"], g["mc_path"][:K]), "paths differ from ant_ipo_sim.npz"
 np.savez_compressed("market/ant_ipo_fund.npz", LV=g["LV"][:K], JJ=g["JJ"], QT=g["QT"][:K], QC=g["QC"][:K],
                     war_day=g["war_day"][:K], war=g["P"]["war"][:K], eq_post=g["eq_post"][:K], mc_ipo=g["mc_ipo"][:K],
-                    margin=g["F"]["margin"][:K], binds=g["F"]["binds"][:K], rel=g["rel"])
+                    margin=g["F"]["margin"][:K], binds=g["F"]["binds"][:K], rel=g["rel"],
+                    margin_cons=g["Fm"]["margin"], bcost_cons=float(g["broadcom_cost"](g["Pm"], g["Fm"])[0][0]), bcost=g["BCOST"][:K])
 print("ok: identical paths, fundamentals exported")

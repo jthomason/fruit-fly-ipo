@@ -47,15 +47,15 @@ def S1(s): return starts[s] + durs[s]
 
 CAP = {1: "I wired a real fruit fly brain to a Monte Carlo simulation of Anthropic's IPO. Then I let it trade.",
        2: "This is the FlyWire connectome. 127,000 real neurons, 15 million connections, simulated spike by spike.",
-       3: "It never sees the stock price. Only the fundamentals from the model. Below fair value tastes like sugar, so it buys. Above fair value tastes bitter, so it sells. An earnings miss? Bitter.",
+       3: "It never sees the stock price. It values the company only from the numbers reported so far: revenue, growth, margins. Below its fair value tastes like sugar, so it buys. Above it tastes bitter, so it sells. An earnings miss? Bitter.",
        4: "First, due diligence. I fed it all 94 pages of risk factors. 69,000 words, one every millisecond.",
        5: "Catastrophic. Harmful. Shutdown. Every negative word hit its bitter neurons. 794 sell spikes, 404 buys. It passed on the IPO.",
-       6: "The model's fair value was $84. The stock priced at $94 and ran to $131. Way too bitter. The fly sat in cash for 83 days.",
-       7: "Day 84, the stock drops below fair value. Sugar. By day 94, it's all in, at an average of $65.",
+       6: "Its fair value was $84. The stock priced at $94 and ran to $131. Way too bitter. The fly sat in cash for 83 days.",
+       7: "Day 84, the stock drops below fair value. Sugar. By day 93, it's all in, at an average of $66.",
        8: "Then the stock fell to $45. Four earnings reports, four misses. It never sold a share.",
-       9: "After one year: buy and hold, $8,047. The fly: $11,620.",
+       9: "After one year: buy and hold, $8,047. The fly: $11,517.",
        10: open(VO + "cap10.txt").read().strip(),
-       11: "Then I turned off all its dopamine neurons. It made $18 less.",
+       11: "Then I turned off all its dopamine neurons. It made $36 less.",
        12: "Fruit flies live about 50 days. This one would have died in cash, waiting for a better price. The code is on GitHub. The fly is not a registered investment adviser."}
 stt = json.load(open(VO + "stt_out.json"))
 def groups(text, maxw=9):
@@ -165,7 +165,7 @@ def hud(d, t, phase, sub=""):
 
 def chart(d, t, x0, y0, x1, y1, day, show_nav=True):
     box(d, (x0, y0, x1, y1))
-    st(d, (x0 + 22, y0 + 26), "$ANT share price vs fundamental fair value · path #%d (median 1-yr outcome)" % trd["hero"], F(MONOR, 18), fill=GREY, anchor="lm")
+    st(d, (x0 + 22, y0 + 26), "$ANT share price vs the fly's fair value · path #%d (median 1-yr outcome)" % trd["hero"], F(MONOR, 18), fill=GREY, anchor="lm")
     cx0, cx1, cy0, cy1 = x0 + 80, x1 - 24, y0 + 56, y0 + int((y1 - y0) * (0.62 if show_nav else 0.9))
     lo, hi = 40, 140
     def Y(p): return cy1 - (p - lo) / (hi - lo) * (cy1 - cy0)
@@ -184,7 +184,7 @@ def chart(d, t, x0, y0, x1, y1, day, show_nav=True):
             st(d, (xx, cy1 - 18), f"{['Q4\'26', 'Q1\'27', 'Q2\'27', 'Q3\'27'][k]} {SURP[k]*100:+.1f}%", F(MONO, 15), fill=cc)
     nf = int(min(day, 252))
     for i in range(0, nf, 2): d.line((X(i), Y(FAIR[i]), X(min(i + 1, 252)), Y(FAIR[min(i + 1, 252)])), fill=CYAN, width=3)
-    st(d, (cx0 + 8, Y(FAIR[0]) + 16), f"fair value ${int(FAIR[0])} (model)", F(MONO, 16), fill=CYAN, anchor="lm")
+    st(d, (cx0 + 8, Y(FAIR[0]) + 16), f"fly's fair value ${int(FAIR[0])}", F(MONO, 16), fill=CYAN, anchor="lm")
     n = int(day)
     if n >= 1:
         pts = [(X(i), Y(px[i])) for i in range(n + 1)]
@@ -391,7 +391,7 @@ def frame(fi):
     elif t < S0(4):
         hud(d, t, "WIRING SENSES → MARKET")
         box(d, (1040, 104, 1896, 896))
-        u1 = ease(lin(t, S0(3) + 0.2, S0(3) + 0.8)); u2 = ease(lin(t, S0(3) + 0.45 * durs[3], S0(3) + 0.45 * durs[3] + 0.6))
+        u1 = ease(lin(t, S0(3) + 0.55 * durs[3], S0(3) + 0.55 * durs[3] + 0.6)); u2 = ease(lin(t, S0(3) + 0.75 * durs[3], S0(3) + 0.75 * durs[3] + 0.6))
         def row(y, a, b, c, col, u):
             if u <= 0: return
             box(d, (1060, y - 60, 1420, y + 60), outline=col, w=3); st(d, (1240, y - 14), a, F(MB, 28), fill=col); st(d, (1240, y + 24), b, F(MONOR, 16), fill=GREY)
@@ -400,9 +400,14 @@ def frame(fi):
         st(d, (1468, 170), "THE FLY NEVER SEES THE PRICE", F(MB, 36), fill=GOLD)
         row(330, "BELOW FAIR VALUE", "or earnings beat → 21 sugar GRNs", ("BUY", "MN9 feeding motor neuron"), GREEN, u1)
         row(560, "ABOVE FAIR VALUE", "or earnings miss → 21 bitter GRNs", ("SELL", "DNge067 descending neuron"), RED, u2)
+        if t > S0(3) + 1.8 and u1 <= 0:
+            st(d, (1468, 360), "ONLY REPORTED NUMBERS", F(MB, 44), fill=WHITE)
+            st(d, (1468, 440), "revenue · growth · margins", F(MBOLD, 34), fill=CYAN)
+            st(d, (1468, 510), "→ the fly's own fair value", F(MBOLD, 28), fill=GREY)
+        if u1 > 0:
+            st(d, (1468, 712), "fly's fair value = only what has been reported so far:", F(MONOR, 18), fill=GREY)
+            st(d, (1468, 742), "revenue, growth, margin → the model's EV / NTM revenue rule", F(MONOR, 18), fill=GREY)
         if u2 > 0:
-            st(d, (1468, 712), "fair value = the Monte Carlo's own EV / NTM revenue rule,", F(MONOR, 18), fill=GREY)
-            st(d, (1468, 742), "using only fundamentals revealed so far", F(MONOR, 18), fill=GREY)
             st(d, (1468, 784), "100 Hz per 15% rich or cheap · 1 trading day = 100 ms", F(MONOR, 18), fill=GREY)
             st(d, (1468, 814), "earnings vs IPO consensus: 200 ms · price war: 300 ms bitter", F(MONOR, 18), fill=GREY)
         box(d, (24, 670, 1004, 896))
@@ -437,10 +442,10 @@ def frame(fi):
     elif t < S0(11):
         hud(d, t, "MONTE CARLO OF THE FLY")
         u = lin(t, S0(10) + 0.2, S0(10) + 2.8)
-        mc_panel(d, t, 1040, 104, 1896, 896, u, ann=t > S0(10) + 6.7, ann2=t > S0(10) + 9.9)
+        mc_panel(d, t, 1040, 104, 1896, 896, u, ann=t > S0(10) + 4.24, ann2=t > S0(10) + 10.4)
         wins = sum(m["nav"] > m["bh"] for m in mc)
         box(d, (24, 670, 1004, 896))
-        if t > S0(10) + 3.66:
+        if t > S0(10) + 3.52:
             st(d, (514, 745), f"FLY WINS {wins}/{len(mc)}", F(MB, 60), fill=GOLD)
             dn = [m for m in mc if m["bh"] < 10000]; up = [m for m in mc if m["bh"] >= 10000]
             st(d, (514, 812), f"down years {sum(m['nav'] > m['bh'] for m in dn)}/{len(dn)} · up years {sum(m['nav'] > m['bh'] for m in up)}/{len(up)}", F(MONO, 24), fill=GREY)

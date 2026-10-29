@@ -126,6 +126,45 @@ def load_fund():
                 fair_px=np.exp(f["LV"]) * (z["px_ipo"][: len(prem)] / z["mc_ipo"][: len(prem)])[:, None])
 
 
+# ============================================================ v3: the fly's OWN walk-forward valuation
+# v2 compared the price with the model's market value, but the model builds the price as market value x sentiment,
+# so that gap carried no fundamental information. v3 values the company only from what has been reported so far:
+#   NTM revenue = IPO consensus for the next 4 quarters, scaled by the latest reported quarter vs its consensus
+#   margin      = IPO consensus, replaced by the true 2027 margin once 2027 quarters are reported (day 122 on)
+#   multiple    = the model's own rule, (5 + 9 ln(1 + NTM growth)) x margin factor, on those reported inputs
+#   minus the consensus Broadcom cost from the S-1
+# The market, by contrast, also sees part of the true future revenue path, a sentiment premium and lock-up supply.
+def fair_mult(g, m):
+    return (5 + 9 * np.log1p(np.maximum(g, -0.5))) * np.clip(1 + 2 * (m - 0.10), 0.6, 1.4)
+
+
+def fly_value(f):
+    QT, QC, JJ = f["QT"], f["QC"], f["JJ"]; n, T1 = QT.shape[0], len(JJ)
+    LVF = np.zeros((n, T1)); NTM = np.zeros((n, T1)); G = np.zeros((n, T1)); M = np.zeros((n, T1))
+    for j in np.unique(JJ):
+        r = QT[:, j] / QC[0, j]
+        ntm = r * QC[0, j + 1:j + 5].sum(); ltm = QT[:, j - 3:j + 1].sum(1); g = ntm / ltm - 1
+        fr = np.clip((j - 3) / 4, 0, 1)
+        m27 = np.full(n, f["margin_cons"][0, 0]) if j < 5 else f["margin"][:, 0]
+        m = m27 * (1 - fr) + f["margin_cons"][0, 1] * fr
+        v = fair_mult(g, m) * ntm
+        cols = JJ == j
+        LVF[:, cols] = (np.log(v) + np.log1p(-f["bcost_cons"] / f["mc_ipo"]))[:, None]
+        NTM[:, cols] = ntm[:, None]; G[:, cols] = g[:, None]; M[:, cols] = m[:, None]
+    return LVF, NTM, G, M
+
+
+def load_fund3():
+    f = np.load(ROOT / "market/ant_ipo_fund.npz"); z = np.load(ROOT / "market/ant_ipo_sim.npz")
+    LVF, NTM, G, M = fly_value(f)
+    prem = np.log(z["mc_path"]) - LVF
+    surp = f["QT"][:, 4:8] / f["QC"][0, 4:8] - 1
+    sh = (z["mc_ipo"][: len(prem)] / z["px_ipo"][: len(prem)])[:, None]
+    return dict(prem=prem, surp=surp, war_day=f["war_day"], war=f["war"], dcf=f["eq_post"] / f["mc_ipo"],
+                fair_px=np.exp(LVF) / sh, mkt_px=np.exp(f["LV"]) / sh, ntm=NTM, g=G, m=M,
+                info_gap=f["LV"] - LVF + np.log1p(-f["bcost_cons"] / f["mc_ipo"])[:, None])
+
+
 def trade_fund(fly, px, prem, surp, war_day, alloc=0, record=False):
     cash = CASH0; sh = 0
     a = int(min(alloc, cash // px[0])); cash -= a * px[0]; sh += a

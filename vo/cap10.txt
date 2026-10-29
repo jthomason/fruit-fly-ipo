@@ -1,1 +1,1 @@
-Then I ran the fly through 40 Monte Carlo years. It beat buy and hold in 31, including every year the stock fell. In one, the stock lost half its value and the fly made 27%. When the stock went up 175%, the fly made 1%.
+Then I ran it through 40 Monte Carlo years. It beat buy and hold in 30. Impressive, until you notice the stock falls in 26 of them, and a fly sitting in cash wins those by default. When the stock went up, it won 4 out of 14.

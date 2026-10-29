@@ -11,11 +11,11 @@ if tagname == "dopamine_off":
 fly = Fly(silence=sil, seed=11)
 px, pxi = load_market(); r = px[:, -1] / px[:, 0] - 1
 hero = int(np.argmin(np.abs(r - np.median(r))))
-FD = load_fund()
+FD = load_fund3()
 t0 = time.time()
 tr = trade_fund(fly, px[hero], FD["prem"][hero], FD["surp"][hero], FD["war_day"][hero], alloc=alloc, record=True)
 rec = fly.B.rec_buf[: fly.B.rec_n[0]].copy()
 print(tagname, "path", hero, "final", round(tr["nav"], 2), "buy&hold", round(tr["bh"], 2), f"[{time.time()-t0:.0f}s]", flush=True)
 pickle.dump(dict(tag=tagname, hero=hero, px=px[hero], fair_px=FD["fair_px"][hero], prem=FD["prem"][hero], surp=FD["surp"][hero],
-                 dcf=float(FD["dcf"][hero]), trade=tr, raster=rec, idx=dict(sug=fly.sug, bit=fly.bit, mn9=fly.mn9, dn=fly.dn)),
+                 dcf=float(FD["dcf"][hero]), mkt_px=FD["mkt_px"][hero], ntm=FD["ntm"][hero], g=FD["g"][hero], trade=tr, raster=rec, idx=dict(sug=fly.sug, bit=fly.bit, mn9=fly.mn9, dn=fly.dn)),
             open(f"results/fund_{tagname}.pkl", "wb"))

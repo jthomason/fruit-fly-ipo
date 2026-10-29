@@ -2,7 +2,7 @@
 import sys, pickle, time, numpy as np
 from ipo_fly import *
 sh, ns, K = map(int, sys.argv[1:4])
-px, pxi = load_market(); r = px[:, -1] / px[:, 0] - 1; FD = load_fund()
+px, pxi = load_market(); r = px[:, -1] / px[:, 0] - 1; FD = load_fund3()
 o = np.argsort(r); pick = o[((np.arange(K) + 0.5) / K * len(r)).astype(int)]
 fly = Fly(seed=100 + sh); out = []
 for j, p in enumerate(pick):
