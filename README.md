@@ -176,19 +176,24 @@ The slow-motion segments replay single 100 ms trading days spike by spike: a sug
 buy). The magenta glow in the dopamine scene marks the 5,670 dopaminergic neurons that the experiment silences.
 The brain is sparse: on a typical day only 60 to 400 neurons fire, because the model has no spontaneous activity.
 
-## Caveats (honest ones)
+## Caveats
 
+- This is a joke. The whole project is an elaborate way to avoid studying for the CFA exam. It worked: no studying
+  was done.
 - The trading rule, the stimulus scaling, and the choice of MN9 as BUY and DNge067 as SELL are our design
-  choices. The connectome supplies the wiring, not the strategy.
+  choices. The connectome supplies the wiring, not the strategy. A fly does not know what a share is.
 - The market is a model. The fly's fair value uses the model's own multiple rule on reported numbers, so the test is
   "if the market behaved like this Monte Carlo, what would a value-wired fly do", not a backtest.
 - Most of the win rate comes from being long-only with a cash start in a model where the stock usually falls. The
-  fly's valuation signal has no measurable predictive edge (`experiments/signal_check.py`).
+  fly's valuation signal has no measurable predictive edge (`experiments/signal_check.py`). Don't hand it your money.
 - This is a point-neuron model with uniform parameters and no plasticity, neuromodulation dynamics, or body.
   "Dopamine off" means those neurons are silenced, not that their chemistry is modeled.
-- Sentiment comes from a bag-of-words dictionary. The fly does not understand English.
-- The market paths come from a model, not from history. The S-1 is real.
-- Fake money. Not financial advice. The fly is not a registered investment adviser.
+- Sentiment comes from a bag-of-words dictionary. The fly does not understand English, or risk factors, or Level I
+  ethics.
+- The market paths come from a model, not from history. The S-1 is real. The hours spent on this are also real and
+  will not be returned.
+- Fake money. Not financial advice. The fly is not a registered investment adviser and has not passed the CFA exam.
+  Neither, at this rate, will the author.
 
 ## Credits
 
