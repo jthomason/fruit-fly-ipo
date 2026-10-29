@@ -1,12 +1,14 @@
 # I wired a fruit fly brain to a Monte Carlo simulation of Anthropic's IPO
 
-This time it is real. A whole-brain spiking model of an adult fruit fly, built from the FlyWire connectome
-(127,400 neurons and 14.7 million connections), reads the Risk Factors section of Anthropic's S-1. It then trades
-a simulated year of the stock, one day at a time. Every spike, trade and dollar in the video comes from this code.
+A whole-brain spiking model of an adult fruit fly, built from the FlyWire connectome (127,400 neurons and
+14.7 million connections), reads the Risk Factors section of Anthropic's S-1. It is then wired to the
+fundamentals of a Monte Carlo model of the company and trades a simulated year of the stock, one day at a time.
+Every spike, trade and dollar in the video comes from this code.
 
 The market is the Monte Carlo from
 [Anthropic's IPO prices a lead like a moat](https://jamesthomason.com/anthropics-ipo-prices-a-lead-like-a-moat/)
-(`market/ant_ipo_mc.py`, 20,000 paths over 252 trading days).
+(`market/ant_ipo_mc.py`, 20,000 paths over 252 trading days). It models revenue, margins, the compute floor and
+the risk of a price war, and prices the stock with its own EV / NTM-revenue multiple rule.
 
 Video: [`media/fruit_fly_ipo_720p.mp4`](media/fruit_fly_ipo_720p.mp4)
 
@@ -48,14 +50,28 @@ Measured over 100 ms, the brain is structurally bullish (`experiments/dose_respo
 1,500 Hz times the fraction of tagged words in each 25-word block, capped at 300 Hz. The IPO allocation is the
 number of buy spikes minus sell spikes, with 1 spike equal to 1 share.
 
-**Phase 2: trading (`run_trade.py`).** Each trading day lasts 100 ms of fly time. On up days the sugar neurons
-are driven, and on down days the bitter neurons are driven. The rate is min(300 Hz, 100 Hz × |daily return| /
-daily vol), where daily vol is 55%/√252. The net spike count (MN9 minus DNge067) is traded at that day's close.
-The fly starts with $10,000 in cash. It can only hold long positions, with no margin and no shorting. The brain
-state carries over from one day to the next.
+**Phase 2: trading on fundamentals (`run_fund.py`).** The fly never sees the stock price.
+`market/export_fundamentals.py` re-runs `ant_ipo_mc.py` unchanged (same draws, same paths) and records, for every
+path and day, the model's fair market value: its own EV / NTM-revenue rule applied to the fundamentals revealed so
+far. It also records each quarter's true revenue against the IPO consensus, and the day a price war starts.
+Each trading day lasts 100 ms of fly time:
 
-**Phase 3: Monte Carlo of the fly (`run_mc.py`).** The fly trades 40 market paths. They are chosen at evenly
+- Valuation gap, premium = log(price / fair value). Below fair value drives the sugar neurons and above fair value
+  drives the bitter neurons, at min(300 Hz, 100 Hz × |premium| / 0.15).
+- Earnings days (days 70, 122, 186 and 250): an extra 200 ms call at min(300 Hz, 100 Hz × |surprise| / 3%).
+  A beat is sugar and a miss is bitter.
+- Price-war day: 300 ms of bitter at 300 Hz.
+
+The net spike count (MN9 minus DNge067) is traded at that day's close, 1 spike = 1 share. The fly starts with
+$10,000 in cash and the IPO allocation from Phase 1. It can only hold long positions, with no margin and no
+shorting. The brain state carries over from one day to the next.
+
+**Phase 3: Monte Carlo of the fly (`run_fund_mc.py`).** The fly trades 40 market paths. They are chosen at evenly
 spaced quantiles of the 1-year return, from the 1st to the 99th percentile.
+
+**Comparison: price-only fly (`run_price_trade.py`, `run_price_mc.py`).** The first version tasted the daily price
+move instead: sugar on up days, bitter on down days, at min(300 Hz, 100 Hz × |daily return| / daily vol). Its results
+are in `results/price_only/`.
 
 ## Results
 
@@ -66,22 +82,37 @@ All results use v630 with fixed seeds: 7 for reading and 11 for trading.
 the IPO.** "Catastrophic", "harmful" and "shutdown" all count as negative in Loughran-McDonald. "Existential" and
 "blackmail" do not.
 
-**The median year (path #307, -19.6%).** The IPO priced at $94.17. Day 1 closed at $97.71 (+3.8%). The stock
-peaked at $131.31 on day 60, bottomed at $45.41 on day 145, and closed the year at $75.74.
+**The median year (path #307, -19.6%).** The model's fair value at the IPO was $84.51. The IPO priced at $94.17,
+the stock peaked at $131.31 on day 60, bottomed at $45.41 on day 145, and closed the year at $75.74.
 
-- The fly bought 15 shares on day 1 and was all in by day 16.
-- On its best day (day 54, +11.2%), MN9 fired 17 times. It had no cash left to buy with.
-- On lock-up expiry (day 122, -9.0%), it fired 10 sell spikes and sold 10 shares.
-- Over the year it fired 1,403 buy spikes and 290 sell spikes, which turned into 48 buy trades and 58 sell trades.
-- **Final value: $7,529 for the fly vs $8,047 for buy and hold.** It ended the year holding 99 shares and $30 in cash.
-- On day 50 (roughly a fruit fly's lifespan), the fly had $10,079 (+0.8%). Buy and hold had $10,908.
+- Days 1-83: the stock was above fair value, so the fly tasted bitter and sat in cash. On day 60 it fired 11 sell
+  spikes with nothing to sell.
+- Day 84: the stock fell below fair value ($73.04). It bought 2 shares, and by day 94 it was all in: 153 shares at
+  an average cost of about $65.
+- All four earnings reports missed the IPO consensus (-1.5%, -2.5%, -3.2%, -4.0%). Those bitter calls never outweighed
+  the sugar from a cheap stock: 0 sell trades all year.
+- Over the year it fired 2,701 buy spikes and 283 sell spikes, which turned into 11 buy trades and 0 sell trades.
+- **Final value: $11,620 for the fly vs $8,047 for buy and hold.** It ended the year holding 153 shares and $32 in cash.
+- On day 50 (roughly a fruit fly's lifespan), the fly had $10,000, all in cash. Buy and hold had $10,908.
 
 **Dopamine off.** We silenced all 5,670 dopaminergic neurons present in v630, using `top_nt == dopamine` from the
-FlyWire annotations. The fly made 1,337 buys and 291 sells and finished at $7,461, which is $68 worse.
+FlyWire annotations. The fly finished at $11,602, which is $18 worse.
 
-**Monte Carlo of the fly (40 paths).** The fly beat buy and hold on **11 of 40** paths. Its median final value was $7,949, against $8,039 for buy and hold. Its mean was $8,723, against $9,211. It ended with a profit on 13 paths, and buy and hold did on 14. Its best relative result came on a path where the stock fell 46%: the fly finished at $10,263 (+3%), while buy and hold finished at $5,420. On the best path (+175%), it trailed by about $4,000. It starts in cash and buys on up days, so it reaches full position after the stock has already moved, and bitter days shake shares loose. By construction it is a momentum trader with a bullish bias. That costs a little in most years and helps in some crashes.
+**Monte Carlo of the fly (40 paths).** The fly beat buy and hold on **31 of 40** paths: all 26 paths where the stock
+fell, and 5 of the 14 where it rose. It won on all 10 paths with a price war. On 4 paths the fly never bought a share and
+stayed in cash all year, so its median final value is exactly $10,000, against $8,039 for buy
+and hold. Its mean was $10,066, against $9,211. It ended with a profit on 17 paths, and buy and hold did on 14. Its best
+relative result came on a path where the stock fell 52%: the fly finished at $12,695 (+27%), while buy and hold
+finished at $4,765. On the best path (+175%), the fly made 1%, because the stock almost never looked cheap. It is a
+value investor by construction: it waits, buys cheap, and misses rallies that never offer a discount.
 
-Per-path numbers are in `results/mc_paths.csv`. Daily ledgers are in `results/ledger_*.csv`.
+**Price-only fly, for comparison.** Tasting daily price moves instead of fundamentals, the fly bought the IPO's early
+rally and finished the median year at $7,529 (buy and hold $8,047). Across the same 40 paths it beat buy and hold on
+11, with a median of $7,949 against $8,039. Wiring it to the fundamentals turned a momentum trader into a value
+investor.
+
+Per-path numbers are in `results/fund_mc_paths.csv`. Daily ledgers are in `results/fund_ledger_*.csv`. Summary
+numbers are in `results/summary.json`.
 
 ## Reproduce
 
@@ -89,10 +120,13 @@ Per-path numbers are in `results/mc_paths.csv`. Daily ledgers are in `results/le
 ./setup.sh                         # clones the model data and annotations, runs the market MC, downloads the S-1
 python experiments/validate.py     # optional: compare against the paper's Brian2 output
 python run_read.py                 # ~4 min
-python run_trade.py                # ~2 min
-python run_trade.py dopamine_off
-python run_mc.py 0 2 40 0 & python run_mc.py 1 2 40 0   # ~35 min on 2 cores
+python run_fund.py                 # ~2 min, the fundamentals-wired fly on the median path
+python run_fund.py dopamine_off
+python run_fund_mc.py 0 2 40 & python run_fund_mc.py 1 2 40; wait   # ~30 min on 2 cores
+python run_price_trade.py          # optional: the price-only comparison
+python run_price_mc.py 0 2 40 0 & python run_price_mc.py 1 2 40 0; wait
 python make_video.py               # needs narration wavs in vo/ (not included)
+python make_audio.py
 ```
 
 Speed is about 3 s of compute per second of fly time on a 2-core machine. Numba's Poisson draws depend on the
@@ -102,6 +136,9 @@ seed and the thread, so spike counts can differ by a few percent on other hardwa
 
 - The trading rule, the stimulus scaling, and the choice of MN9 as BUY and DNge067 as SELL are our design
   choices. The connectome supplies the wiring, not the strategy.
+- "Fair value" is the Monte Carlo's own pricing rule, so the fly is trading the model against the model's own
+  price paths. Its edge comes from that rule and from being
+  long-only with a cash start, not from the fly predicting anything. In falling years, cash beats buy and hold.
 - This is a point-neuron model with uniform parameters and no plasticity, neuromodulation dynamics, or body.
   "Dopamine off" means those neurons are silenced, not that their chemistry is modeled.
 - Sentiment comes from a bag-of-words dictionary. The fly does not understand English.

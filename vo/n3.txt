@@ -1,1 +1,1 @@
-Green days hit its sugar taste neurons. Red days hit the bitter ones. When its feeding neuron fires, it buys. When its bitter neuron fires, it sells.
+It never sees the stock price. Only the fundamentals from the model. Below fair value tastes like sugar, so it buys. Above fair value tastes bitter, so it sells. An earnings miss? Bitter.

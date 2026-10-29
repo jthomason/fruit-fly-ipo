@@ -1,5 +1,4 @@
-import numpy as np, wave, json, pickle
-import os
+import numpy as np, wave, json, pickle, os
 SR = 44100; R = os.path.dirname(os.path.abspath(__file__)) + "/"
 tm = json.load(open(R + "vo/timing.json")); st = {int(k): v for k, v in tm["starts"].items()}; du = {int(k): v for k, v in tm["durs"].items()}
 S0 = lambda s: st[s]; S1 = lambda s: st[s] + du[s]
@@ -26,13 +25,13 @@ bass = 0.045 * np.sin(2 * np.pi * 55 * t) * (0.5 + 0.5 * np.sign(np.sin(2 * np.p
 # timeline identical to render_real.py
 def ease(x): x = min(max(x, 0), 1); return x * x * (3 - 2 * x)
 def lin(x, a, b): return min(max((x - a) / max(b - a, 1e-6), 0), 1)
-KEY = [(S0(6), 0.0), (S1(6), 5.0), (S0(7) + 1.6, 16.0), (S1(7) - 0.5, 60.0), (S0(8) + 0.9, 122.0), (S1(8), 128.0), (S0(9) + 1.0, 252.0)]
+KEY = [(S0(6), 0.0), (S1(6), 83.0), (S0(7) + 0.15 * du[7], 84.0), (S1(7), 95.0), (S1(8), 250.0), (S0(9) + 1.0, 252.0)]
 def day_at(x):
     if x <= KEY[0][0]: return 0.0
     for (a, da), (b_, db) in zip(KEY[:-1], KEY[1:]):
         if x <= b_: return da + (db - da) * ease(lin(x, a, b_)) if db - da > 60 else da + (db - da) * lin(x, a, b_)
     return 252.0
-L = pickle.load(open(R + "results/trade_normal.pkl", "rb"))["trade"]["ledger"]
+L = pickle.load(open(R + "results/fund_normal.pkl", "rb"))["trade"]["ledger"]
 ts = np.arange(S0(6), S0(9) + 1.2, 1 / 200); ds = np.array([day_at(x) for x in ts]); last = -1
 for d in range(1, 253):
     k = np.searchsorted(ds, d)
@@ -40,18 +39,20 @@ for d in range(1, 253):
     x = ts[k]
     if x - last < 0.07: continue
     q = L[d - 1]["q"]
+    if L[d - 1]["ev"] == "earnings": add(tone(700, 350, 0.35, 0.18, 6), x)
     if q > 0: add(tone(1500, 1700, 0.06, 0.10, 30), x); last = x
     elif q < 0: add(tone(420, 330, 0.08, 0.12, 25), x); last = x
 # reading: soft geiger clicks for sell spikes during reading window
-ch = pickle.load(open(R + "results/read_normal.pkl", "rb"))["read"]["chunks"]
+ch = pickle.load(open(R + "results/hero_normal.pkl", "rb"))["read"]["chunks"]
 RD0, RD1 = S0(4) + 0.4, S0(5) + 0.62 * du[5]
 click = rng.normal(0, 1, int(0.004 * SR)) * 0.10
 for j, c in enumerate(ch):
     if c["s"] and rng.random() < 0.35: add(click, RD0 + (RD1 - RD0) * j / len(ch), 0.8)
 add(tone(500, 1400, 0.4, 0.22), S0(2))
 add(tone(880, 880, 0.5, 0.22, 6) + tone(1320, 1320, 0.5, 0.12, 6), S0(5) + 0.72 * du[5])     # allocation 0 stamp
-add(tone(1000, 1500, 0.3, 0.2), S0(6) + 0.3 * du[6])
-add(tone(600, 250, 0.5, 0.25), S0(8) + 0.35 * du[8])
+add(tone(600, 250, 0.5, 0.25), S0(6) + 0.68 * du[6])
+add(tone(1000, 1500, 0.3, 0.2), S0(7) + 0.4 * du[7])
+add(tone(600, 250, 0.5, 0.25), S0(8) + 0.4 * du[8])
 add(tone(523, 523, 0.3, 0.2) + tone(659, 659, 0.3, 0.15), S0(9) + 1.0)
 add(tone(400, 150, 0.4, 0.3), S0(11))
 add(tone(600, 300, 0.5, 0.2), S0(12) + 0.2); add(tone(450, 200, 0.8, 0.2), S1(12) + 0.3)

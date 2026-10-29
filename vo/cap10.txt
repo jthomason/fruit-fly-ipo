@@ -1,1 +1,1 @@
-Then I ran it on 40 more simulated IPOs. It beat buy and hold 11 times. In one, the stock fell 46%, and the fly made money.
+Then I ran the fly through 40 Monte Carlo years. It beat buy and hold in 31, including every year the stock fell. In one, the stock lost half its value and the fly made 27%. When the stock went up 175%, the fly made 1%.

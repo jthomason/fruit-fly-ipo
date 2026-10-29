@@ -16,4 +16,4 @@ for j, p in enumerate(pick):
                     buys=int(sum(e["b"] for e in L)), sells=int(sum(e["s"] for e in L)),
                     trades=int(sum(1 for e in L if e["q"]))))
     print(f"path {p} q={(j+0.5)/K:.3f} ipo->1y {r[p]*100:+.1f}%  fly ${tr['nav']:,.0f}  buy&hold ${tr['bh']:,.0f}  {time.time()-t0:.0f}s", flush=True)
-    pickle.dump(out, open(f"results/mc_shard{sh}.pkl", "wb"))
+    pickle.dump(out, open(f"results/price_only/mc_shard{sh}.pkl", "wb"))

@@ -1,1 +1,1 @@
-Last time, I faked it. This time, I actually wired a fruit fly brain to a Monte Carlo simulation of Anthropic's IPO.
+I wired a real fruit fly brain to a Monte Carlo simulation of Anthropic's IPO. Then I let it trade.

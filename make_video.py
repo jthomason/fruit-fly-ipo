@@ -7,9 +7,9 @@ R = os.path.dirname(os.path.abspath(__file__)) + "/"
 W, H, FPS = 1920, 1080, 30
 # ------------------------------------------------------------------ data
 hero = pickle.load(open(R + "results/read_normal.pkl", "rb"))
-trd = pickle.load(open(R + "results/trade_normal.pkl", "rb"))
-dop = pickle.load(open(R + "results/trade_dopamine_off.pkl", "rb"))
-mc = sum([pickle.load(open(f, "rb")) for f in sorted(glob.glob(R + "results/mc_shard*.pkl"))], [])
+trd = pickle.load(open(R + "results/fund_normal.pkl", "rb"))
+dop = pickle.load(open(R + "results/fund_dopamine_off.pkl", "rb"))
+mc = sum([pickle.load(open(f, "rb")) for f in sorted(glob.glob(R + "results/fund_mc_shard*.pkl"))], [])
 mc = sorted(mc, key=lambda d: d["q"])
 chunks = hero["read"]["chunks"]; L = trd["trade"]["ledger"]; px = trd["px"]; LD = dop["trade"]["ledger"]
 idx = trd["idx"]; raster = trd["raster"]
@@ -28,6 +28,7 @@ cum_b = np.cumsum([c["b"] for c in chunks]); cum_s = np.cumsum([c["s"] for c in 
 NAV = np.array([10000.0] + [e["nav"] for e in L]); NAVD = np.array([10000.0] + [e["nav"] for e in LD])
 bh_sh = 10000 // px[0]; BH = bh_sh * px + (10000 - bh_sh * px[0])
 NCON = 14_687_178
+FAIR = trd["fair_px"]; SURP = trd["surp"]; EDAYS = [70, 122, 186, 250]
 
 # ------------------------------------------------------------------ narration timing
 VO = R + "vo/"
@@ -44,18 +45,18 @@ json.dump(dict(starts=starts, durs=durs, total=TOTAL, end=END), open(R + "vo/tim
 def S0(s): return starts[s]
 def S1(s): return starts[s] + durs[s]
 
-CAP = {1: "Last time, I faked it. This time, I actually wired a fruit fly brain to a Monte Carlo simulation of Anthropic's IPO.",
+CAP = {1: "I wired a real fruit fly brain to a Monte Carlo simulation of Anthropic's IPO. Then I let it trade.",
        2: "This is the FlyWire connectome. 127,000 real neurons, 15 million connections, simulated spike by spike.",
-       3: "Green days hit its sugar taste neurons. Red days hit the bitter ones. When its feeding neuron fires, it buys. When its bitter neuron fires, it sells.",
+       3: "It never sees the stock price. Only the fundamentals from the model. Below fair value tastes like sugar, so it buys. Above fair value tastes bitter, so it sells. An earnings miss? Bitter.",
        4: "First, due diligence. I fed it all 94 pages of risk factors. 69,000 words, one every millisecond.",
        5: "Catastrophic. Harmful. Shutdown. Every negative word hit its bitter neurons. 794 sell spikes, 404 buys. It passed on the IPO.",
-       6: "Day one, the stock pops almost 4%. Sugar neurons light up. It buys the pop.",
-       7: "By day 16, it's all in. On its best day, it wanted 17 more shares. It had no cash. It just stood there.",
-       8: "Day 122. The lock-up ends, the stock drops 9%, and it sells 10 shares.",
-       9: "Buy and hold: $8,047. The fly: $7,529.",
+       6: "The model's fair value was $84. The stock priced at $94 and ran to $131. Way too bitter. The fly sat in cash for 83 days.",
+       7: "Day 84, the stock drops below fair value. Sugar. By day 94, it's all in, at an average of $65.",
+       8: "Then the stock fell to $45. Four earnings reports, four misses. It never sold a share.",
+       9: "After one year: buy and hold, $8,047. The fly: $11,620.",
        10: open(VO + "cap10.txt").read().strip(),
-       11: "Then I turned off all its dopamine neurons. It lost another $68.",
-       12: "Fruit flies live about 50 days. On day 50, it was up almost 1%. The code is on GitHub. The fly is not a registered investment adviser."}
+       11: "Then I turned off all its dopamine neurons. It made $18 less.",
+       12: "Fruit flies live about 50 days. This one would have died in cash, waiting for a better price. The code is on GitHub. The fly is not a registered investment adviser."}
 stt = json.load(open(VO + "stt_out.json"))
 def groups(text, maxw=9):
     out = []
@@ -143,7 +144,7 @@ def brain_frame(view, decay=0.55, hl=None, hl_amt=0.0):
 
 # ------------------------------------------------------------------ timelines
 TR0, TR1 = S0(6), S1(9) - 0.6          # trading playback window
-KEY = [(S0(6), 0.0), (S1(6), 5.0), (S0(7) + 1.6, 16.0), (S1(7) - 0.5, 60.0), (S0(8) + 0.9, 122.0), (S1(8), 128.0), (S0(9) + 1.0, 252.0)]
+KEY = [(S0(6), 0.0), (S1(6), 83.0), (S0(7) + 0.15 * durs[7], 84.0), (S1(7), 95.0), (S1(8), 250.0), (S0(9) + 1.0, 252.0)]
 def day_at(t):
     if t <= KEY[0][0]: return 0.0
     for (a, da), (b, db) in zip(KEY[:-1], KEY[1:]):
@@ -164,7 +165,7 @@ def hud(d, t, phase, sub=""):
 
 def chart(d, t, x0, y0, x1, y1, day, show_nav=True):
     box(d, (x0, y0, x1, y1))
-    st(d, (x0 + 22, y0 + 26), "$ANT share price · Monte Carlo path #%d (median 1-yr outcome)" % trd["hero"], F(MONOR, 18), fill=GREY, anchor="lm")
+    st(d, (x0 + 22, y0 + 26), "$ANT share price vs fundamental fair value · path #%d (median 1-yr outcome)" % trd["hero"], F(MONOR, 18), fill=GREY, anchor="lm")
     cx0, cx1, cy0, cy1 = x0 + 80, x1 - 24, y0 + 56, y0 + int((y1 - y0) * (0.62 if show_nav else 0.9))
     lo, hi = 40, 140
     def Y(p): return cy1 - (p - lo) / (hi - lo) * (cy1 - cy0)
@@ -173,10 +174,17 @@ def chart(d, t, x0, y0, x1, y1, day, show_nav=True):
         d.line((cx0, Y(p), cx1, Y(p)), fill=(28, 34, 52), width=1); st(d, (cx0 - 10, Y(p)), f"${p}", F(MONOR, 17), fill=DIM, anchor="rm")
     d.line((cx0, Y(px[0]), cx1, Y(px[0])), fill=(120, 120, 140), width=1)
     st(d, (cx1, Y(px[0]) - 12), f"IPO ${px[0]:.2f}", F(MONO, 16), fill=GREY, anchor="rm")
-    for dd, lab, ly in ((50, "day 50: avg fly lifespan", 10), (122, "day 122: lock-up", 32)):
-        xx = X(dd); col = (150, 120, 200) if dd == 50 else (200, 100, 100)
-        for yy in range(int(cy0), int(cy1), 10): d.line((xx, yy, xx, yy + 5), fill=tuple(c // 2 for c in col), width=2)
-        st(d, (xx + 6, cy0 + ly), lab, F(MONO, 15), fill=col, anchor="lm")
+    xx = X(50); col = (150, 120, 200)
+    for yy in range(int(cy0), int(cy1), 10): d.line((xx, yy, xx, yy + 5), fill=tuple(c // 2 for c in col), width=2)
+    st(d, (xx + 6, cy0 + 10), "day 50: avg fly lifespan", F(MONO, 15), fill=col, anchor="lm")
+    for k, ed in enumerate(EDAYS):
+        if day >= ed:
+            xx = X(ed); cc = GREEN if SURP[k] > 0 else RED
+            d.line((xx, cy1 - 6, xx, cy1 + 6), fill=cc, width=3)
+            st(d, (xx, cy1 - 18), f"{['Q4\'26', 'Q1\'27', 'Q2\'27', 'Q3\'27'][k]} {SURP[k]*100:+.1f}%", F(MONO, 15), fill=cc)
+    nf = int(min(day, 252))
+    for i in range(0, nf, 2): d.line((X(i), Y(FAIR[i]), X(min(i + 1, 252)), Y(FAIR[min(i + 1, 252)])), fill=CYAN, width=3)
+    st(d, (cx0 + 8, Y(FAIR[0]) + 16), f"fair value ${int(FAIR[0])} (model)", F(MONO, 16), fill=CYAN, anchor="lm")
     n = int(day)
     if n >= 1:
         pts = [(X(i), Y(px[i])) for i in range(n + 1)]
@@ -284,7 +292,7 @@ def stamp(img, t, t0, txt, col, sub=None, cx=W / 2, cy=H / 2 - 40, size=88):
     if sub: st(d, (cx, cy + h_ / 2 + 22), sub, F(MBOLD, 26), fill=WHITE)
 
 # ------------------------------------------------------------------ MC + end panels
-def mc_panel(d, t, x0, y0, x1, y1, u, ann=False):
+def mc_panel(d, t, x0, y0, x1, y1, u, ann=False, ann2=False):
     box(d, (x0, y0, x1, y1))
     st(d, (x0 + 22, y0 + 26), f"Fly vs buy-and-hold on {len(mc)} IPO paths (stratified across all 20,000)", F(MONOR, 18), fill=GREY, anchor="lm")
     cx0, cx1, cy0, cy1 = x0 + 90, x1 - 30, y0 + 70, y1 - 70
@@ -301,10 +309,15 @@ def mc_panel(d, t, x0, y0, x1, y1, u, ann=False):
         c = GREEN if m["nav"] > m["bh"] else RED
         d.ellipse((xx - 7, Y(m["nav"]) - 7, xx + 7, Y(m["nav"]) + 7), fill=c)
     if ann:
-        k = max(range(n), key=lambda j: (mc[j]["nav"] > 10000) * -mc[j]["ret"]); m = mc[k]; xx = cx0 + (k + 0.5) * bw
+        k = max(range(n), key=lambda j: mc[j]["nav"] - mc[j]["bh"]); m = mc[k]; xx = cx0 + (k + 0.5) * bw
         d.ellipse((xx - 13, Y(m["nav"]) - 13, xx + 13, Y(m["nav"]) + 13), outline=GOLD, width=3)
         st(d, (xx + 22, Y(m["nav"]) - 60), f"stock {m['ret']*100:+.0f}%", F(MBOLD, 24), fill=RED, anchor="lm")
         st(d, (xx + 22, Y(m["nav"]) - 30), f"fly {(m['nav']/10000-1)*100:+.0f}%", F(MBOLD, 24), fill=GREEN, anchor="lm")
+    if ann2:
+        k = max(range(n), key=lambda j: mc[j]["ret"]); m = mc[k]; xx = cx0 + (k + 0.5) * bw
+        d.ellipse((xx - 13, Y(m["nav"]) - 13, xx + 13, Y(m["nav"]) + 13), outline=GOLD, width=3)
+        st(d, (xx - 22, Y(m["bh"]) + 4), f"stock {m['ret']*100:+.0f}%", F(MBOLD, 24), fill=GREEN, anchor="rm")
+        st(d, (xx - 22, Y(m["nav"]) + 40), f"fly {(m['nav']/10000-1)*100:+.0f}%", F(MBOLD, 24), fill=RED, anchor="rm")
     st(d, (cx0, cy1 + 28), "worst IPO path", F(MONOR, 16), fill=DIM, anchor="lm"); st(d, (cx1, cy1 + 28), "best IPO path", F(MONOR, 16), fill=DIM, anchor="rm")
     mx = (cx0 + cx1) / 2; yy = cy1 + 28
     d.ellipse((mx - 150, yy - 6, mx - 138, yy + 6), fill=GREEN); d.ellipse((mx - 132, yy - 6, mx - 120, yy + 6), fill=RED)
@@ -360,11 +373,11 @@ def frame(fi):
         hud(d, t, "BOOTING")
         u = ease(lin(t, 0.2, 0.8))
         box(d, (1040, 104, 1896, 896))
-        st(d, (1468, 300), "I ACTUALLY WIRED", F(MB, 66), fill=WHITE); st(d, (1468, 380), "A FRUIT FLY BRAIN", F(MB, 66), fill=WHITE)
+        st(d, (1468, 300), "I WIRED A REAL", F(MB, 66), fill=WHITE); st(d, (1468, 380), "FRUIT FLY BRAIN", F(MB, 66), fill=WHITE)
         st(d, (1468, 470), "TO A MONTE CARLO OF", F(MB, 50), fill=GOLD); st(d, (1468, 535), "ANTHROPIC'S IPO", F(MB, 66), fill=GOLD)
-        if t > S0(1) + 1.6: stamp(img, t, S0(1) + 1.6, "FOR REAL THIS TIME", RED, cx=1468, cy=700, size=46)
-        box(d, (24, 670, 1004, 896)); st(d, (514, 783), "last time: fake neurons", F(MBOLD, 30), fill=DIM)
-        d.line((300, 783, 728, 783), fill=RED, width=4)
+        if t > S0(1) + 5.8: stamp(img, t, S0(1) + 5.8, "THEN I LET IT TRADE", GREEN, cx=1468, cy=700, size=46)
+        box(d, (24, 670, 1004, 896)); st(d, (514, 760), "real connectome · real spikes", F(MBOLD, 30), fill=GREY)
+        st(d, (514, 810), "simulated market · fake money", F(MBOLD, 24), fill=DIM)
     elif t < S0(3):
         hud(d, t, "CONNECTOME LOADED")
         box(d, (1040, 104, 1896, 896))
@@ -381,13 +394,17 @@ def frame(fi):
         u1 = ease(lin(t, S0(3) + 0.2, S0(3) + 0.8)); u2 = ease(lin(t, S0(3) + 0.45 * durs[3], S0(3) + 0.45 * durs[3] + 0.6))
         def row(y, a, b, c, col, u):
             if u <= 0: return
-            box(d, (1080, y - 60, 1350, y + 60), outline=col, w=3); st(d, (1215, y - 14), a, F(MB, 30), fill=col); st(d, (1215, y + 24), b, F(MONOR, 17), fill=GREY)
-            d.line((1360, y, 1520, y), fill=col, width=5); d.polygon([(1520, y - 12), (1544, y), (1520, y + 12)], fill=col)
-            box(d, (1556, y - 60, 1856, y + 60), outline=col, w=3); st(d, (1706, y - 14), c[0], F(MB, 30), fill=col); st(d, (1706, y + 24), c[1], F(MONOR, 17), fill=GREY)
-        row(320, "UP DAY", "→ 21 sugar taste neurons", ("BUY", "MN9 feeding motor neuron"), GREEN, u1)
-        row(560, "DOWN DAY", "→ 21 bitter taste neurons", ("SELL", "DNge067 descending neuron"), RED, u2)
-        if u2 > 0: st(d, (1468, 760), "stimulus = 100 Hz × |daily return| / daily vol (max 300 Hz)", F(MONOR, 19), fill=GREY)
-        if u2 > 0: st(d, (1468, 795), "each trading day = 100 ms of fly time", F(MONOR, 19), fill=GREY)
+            box(d, (1060, y - 60, 1420, y + 60), outline=col, w=3); st(d, (1240, y - 14), a, F(MB, 28), fill=col); st(d, (1240, y + 24), b, F(MONOR, 16), fill=GREY)
+            d.line((1430, y, 1530, y), fill=col, width=5); d.polygon([(1530, y - 12), (1552, y), (1530, y + 12)], fill=col)
+            box(d, (1566, y - 60, 1866, y + 60), outline=col, w=3); st(d, (1716, y - 14), c[0], F(MB, 30), fill=col); st(d, (1716, y + 24), c[1], F(MONOR, 16), fill=GREY)
+        st(d, (1468, 170), "THE FLY NEVER SEES THE PRICE", F(MB, 36), fill=GOLD)
+        row(330, "BELOW FAIR VALUE", "or earnings beat → 21 sugar GRNs", ("BUY", "MN9 feeding motor neuron"), GREEN, u1)
+        row(560, "ABOVE FAIR VALUE", "or earnings miss → 21 bitter GRNs", ("SELL", "DNge067 descending neuron"), RED, u2)
+        if u2 > 0:
+            st(d, (1468, 712), "fair value = the Monte Carlo's own EV / NTM revenue rule,", F(MONOR, 18), fill=GREY)
+            st(d, (1468, 742), "using only fundamentals revealed so far", F(MONOR, 18), fill=GREY)
+            st(d, (1468, 784), "100 Hz per 15% rich or cheap · 1 trading day = 100 ms", F(MONOR, 18), fill=GREY)
+            st(d, (1468, 814), "earnings vs IPO consensus: 200 ms · price war: 300 ms bitter", F(MONOR, 18), fill=GREY)
         box(d, (24, 670, 1004, 896))
         st(d, (514, 730), "neurons picked from the published circuit:", F(MONOR, 20), fill=GREY)
         st(d, (514, 785), "sugar → MN9 (proboscis extension)", F(MBOLD, 26), fill=GREEN); st(d, (514, 835), "bitter → DNge067 (never fires for sugar)", F(MBOLD, 26), fill=RED)
@@ -412,21 +429,22 @@ def frame(fi):
         raster_panel(d, t, max(day, 0.01), 24, 670, 1004, 896)
         e = L[max(dd, 1) - 1]
         st(d, (BXY[2] - 16, BXY[1] + 22), f"shares {e['sh']:>3}  cash ${e['cash']:,.0f}", F(MONO, 19), fill=WHITE, anchor="rm")
-        if S0(6) + 0.3 * durs[6] < t < S1(6) + 0.2: stamp(img, t, S0(6) + 0.3 * durs[6], "+3.8% POP → BUYS 15", GREEN, cx=514, cy=420, size=46)
-        if S0(7) + 0.35 * durs[7] < t < S1(7) + 0.1: stamp(img, t, S0(7) + 0.35 * durs[7], "BEST DAY +11.2% · WANTS 17 · CASH $0", GOLD, cx=514, cy=420, size=34)
-        if S0(8) + 0.35 * durs[8] < t < S1(8) + 0.2: stamp(img, t, S0(8) + 0.35 * durs[8], "LOCK-UP DAY −9.0% → SELLS 10", RED, cx=514, cy=420, size=40)
+        if S0(6) + 0.68 * durs[6] < t < S1(6) + 0.2: stamp(img, t, S0(6) + 0.68 * durs[6], f"STOCK ${px.max():.0f} vs FAIR ${int(FAIR[0])} → CASH", RED, cx=514, cy=420, size=40)
+        if S0(7) + 0.4 * durs[7] < t < S1(7) + 0.1: stamp(img, t, S0(7) + 0.4 * durs[7], "BELOW FAIR VALUE → ALL IN", GREEN, cx=514, cy=420, size=44)
+        if S0(8) + 0.4 * durs[8] < t < S1(8) + 0.2: stamp(img, t, S0(8) + 0.4 * durs[8], "4 EARNINGS MISSES · 0 SHARES SOLD", RED, cx=514, cy=420, size=36)
         if t > S0(9) + 1.0:
             stamp(img, t, S0(9) + 1.0, f"FLY ${NAV[-1]:,.0f}  vs  BUY&HOLD ${BH[-1]:,.0f}", GOLD, sub="after 252 trading days", cx=W / 2, cy=420, size=52)
     elif t < S0(11):
         hud(d, t, "MONTE CARLO OF THE FLY")
         u = lin(t, S0(10) + 0.2, S0(10) + 2.8)
-        mc_panel(d, t, 1040, 104, 1896, 896, u, ann=t > S0(10) + 6.1)
+        mc_panel(d, t, 1040, 104, 1896, 896, u, ann=t > S0(10) + 6.7, ann2=t > S0(10) + 9.9)
         wins = sum(m["nav"] > m["bh"] for m in mc)
         box(d, (24, 670, 1004, 896))
-        if t > S0(10) + 3.85:
+        if t > S0(10) + 3.66:
             st(d, (514, 745), f"FLY WINS {wins}/{len(mc)}", F(MB, 60), fill=GOLD)
-            med_f = np.median([m["nav"] for m in mc]); med_b = np.median([m["bh"] for m in mc])
-            st(d, (514, 820), f"median: fly ${med_f:,.0f} · buy&hold ${med_b:,.0f}", F(MONO, 22), fill=GREY)
+            dn = [m for m in mc if m["bh"] < 10000]; up = [m for m in mc if m["bh"] >= 10000]
+            st(d, (514, 812), f"down years {sum(m['nav'] > m['bh'] for m in dn)}/{len(dn)} · up years {sum(m['nav'] > m['bh'] for m in up)}/{len(up)}", F(MONO, 24), fill=GREY)
+            st(d, (514, 852), f"never traded (stayed in cash): {sum(m['trades'] == 0 for m in mc)}", F(MONO, 18), fill=DIM)
     elif t < S0(12):
         hud(d, t, "EXPERIMENT: DOPAMINE OFF")
         dopamine_panel(d, t, 1040, 104, 1896, 896, lin(t, S0(11), S1(11)))
@@ -436,7 +454,7 @@ def frame(fi):
         box(d, (1040, 104, 1896, 896))
         if t < S0(12) + 0.45 * durs[12]:
             st(d, (1468, 220), "DAY 50", F(MB, 96), fill=(190, 150, 255)); st(d, (1468, 300), "average fruit fly lifespan", F(MBOLD, 28), fill=GREY)
-            st(d, (1468, 430), f"fly ${NAV[50]:,.0f}", F(MB, 64), fill=GOLD); st(d, (1468, 500), f"+{(NAV[50]/1e4-1)*100:.1f}%", F(MB, 48), fill=GREEN)
+            st(d, (1468, 430), f"fly ${NAV[50]:,.0f}", F(MB, 64), fill=GOLD); st(d, (1468, 500), f"{L[49]['sh']} shares · still waiting", F(MB, 40), fill=CYAN)
             st(d, (1468, 600), f"(buy & hold: ${BH[50]:,.0f})", F(MONO, 24), fill=GREY)
         else:
             st(d, (1468, 200), "REAL CONNECTOME.", F(MB, 54), fill=WHITE); st(d, (1468, 270), "REAL SPIKES.", F(MB, 54), fill=WHITE)
@@ -446,7 +464,7 @@ def frame(fi):
             st(d, (1468, 640), "Brain: FlyWire (Dorkenwald et al. 2024), model: Shiu et al. 2024", F(MONOR, 17), fill=DIM)
             st(d, (1468, 668), "Market: ANT IPO Monte Carlo (jamesthomason.com) · Text: S-1 filed Oct 26, 2026", F(MONOR, 17), fill=DIM)
             st(d, (1468, 696), "Sentiment: Loughran-McDonald dictionary", F(MONOR, 17), fill=DIM)
-        box(d, (24, 670, 1004, 896)); st(d, (514, 760), "simulated fly never aged", F(MBOLD, 28), fill=GREY); st(d, (514, 810), "it is still holding 99 shares", F(MBOLD, 28), fill=GOLD)
+        box(d, (24, 670, 1004, 896)); st(d, (514, 760), "simulated fly never aged", F(MBOLD, 28), fill=GREY); st(d, (514, 810), f"it is still holding {L[-1]['sh']} shares", F(MBOLD, 28), fill=GOLD)
     caption(d, t)
     return img
 

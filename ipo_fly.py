@@ -101,3 +101,53 @@ def trade(fly, px, alloc=0, record=False):
         if record: e["sp"] = fly.sparse(c); e["tot"] = int(c.sum())
         led.append(e)
     return dict(alloc=a, ledger=led, nav=led[-1]["nav"], bh=CASH0 // px[0] * px[-1] + CASH0 % px[0])
+
+
+# ============================================================ v2: the fly is wired to the FUNDAMENTALS, not the price
+# Everything below comes from ant_ipo_mc.py itself (market/ant_ipo_fund.npz, exported by market/export_fundamentals.py):
+#   fair value  = the model's own market-pricing rule: fair EV/NTM multiple x expected NTM revenue, using only the
+#                 fundamentals revealed so far (consensus blended toward the true path after each earnings report)
+#   valuation   = log(market cap / fair value). Cheap -> sugar, rich -> bitter. Every day, 100 ms.
+#   earnings    = days 70, 122, 186, 250: reported quarterly revenue vs the IPO consensus path. Beat -> sugar,
+#                 miss -> bitter, for a 200 ms "earnings call".
+#   price war   = the day the 2027 price war starts (25% of paths): 300 ms of bitter at 300 Hz.
+# The fly never sees the stock price. It only trades at it.
+EARN_DAYS = {70: 4, 122: 5, 186: 6, 250: 7}
+V_SCALE = 0.15          # 15% rich/cheap -> 100 Hz
+E_SCALE = 0.03          # 3% revenue beat/miss -> 100 Hz
+CALL_MS = 200.0; WAR_MS = 300.0
+
+
+def load_fund():
+    f = np.load(ROOT / "market/ant_ipo_fund.npz"); z = np.load(ROOT / "market/ant_ipo_sim.npz")
+    prem = np.log(z["mc_path"]) - f["LV"]
+    surp = f["QT"][:, 4:8] / f["QC"][0, 4:8] - 1
+    return dict(prem=prem, surp=surp, war_day=f["war_day"], war=f["war"], dcf=f["eq_post"] / f["mc_ipo"],
+                fair_px=np.exp(f["LV"]) * (z["px_ipo"][: len(prem)] / z["mc_ipo"][: len(prem)])[:, None])
+
+
+def trade_fund(fly, px, prem, surp, war_day, alloc=0, record=False):
+    cash = CASH0; sh = 0
+    a = int(min(alloc, cash // px[0])); cash -= a * px[0]; sh += a
+    led = []
+    for d in range(1, len(px)):
+        v = prem[d]
+        r_s = min(300.0, 100.0 * max(-v, 0) / V_SCALE); r_b = min(300.0, 100.0 * max(v, 0) / V_SCALE)
+        c = fly.window(DAY_MS, r_s, r_b).astype(np.int32)
+        ev = None; es = 0.0
+        if d in EARN_DAYS:
+            es = float(surp[EARN_DAYS[d] - 4]); ev = "earnings"
+            rr = min(300.0, 100.0 * abs(es) / E_SCALE)
+            c = c + fly.window(CALL_MS, rr if es > 0 else 0, rr if es < 0 else 0)
+        if d == war_day:
+            ev = "war"; c = c + fly.window(WAR_MS, 0, 300.0)
+        b = int(c[fly.mn9].sum()); s = int(c[fly.dn].sum())
+        net = b - s; q = 0
+        if net > 0: q = int(min(net, cash // px[d]))
+        elif net < 0: q = -int(min(-net, sh))
+        cash -= q * px[d]; sh += q
+        e = dict(d=d, px=float(px[d]), prem=float(v), rs=r_s, rb=r_b, ev=ev, surp=es, b=b, s=s, q=q, cash=cash, sh=sh,
+                 nav=cash + sh * px[d])
+        if record: e["sp"] = fly.sparse(c); e["tot"] = int(c.sum())
+        led.append(e)
+    return dict(alloc=a, ledger=led, nav=led[-1]["nav"], bh=CASH0 // px[0] * px[-1] + CASH0 % px[0])

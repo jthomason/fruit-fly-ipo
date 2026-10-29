@@ -12,27 +12,70 @@
    "sell_spikes": 789
   }
  },
- "median_path": {
+ "fundamentals_median_path": {
   "path": 307,
   "ipo_price": 94.17,
+  "fair_value_at_ipo": 84.51,
+  "peak_price": 131.31,
+  "trough_price": 45.41,
   "final_price": 75.74,
-  "fly_final": 7528.77,
+  "earnings_surprises": [
+   -0.0148,
+   -0.0246,
+   -0.0323,
+   -0.0398
+  ],
+  "first_buy_day": 84,
+  "fly_final": 11620.0,
   "buy_hold_final": 8046.65,
-  "fly_day50": 10079.03,
-  "buy_spikes": 1403,
-  "sell_spikes": 290,
-  "buy_days": 48,
-  "sell_days": 58,
-  "dopamine_off_final": 7461.11
+  "fly_day50": 10000.0,
+  "buy_spikes": 2701,
+  "sell_spikes": 283,
+  "buy_days": 11,
+  "sell_days": 0,
+  "final_shares": 153,
+  "dopamine_off_final": 11601.83
  },
- "monte_carlo": {
+ "fundamentals_monte_carlo": {
   "paths": 40,
-  "fly_beat_buy_hold": 11,
-  "fly_median": 7949.36,
+  "fly_beat_buy_hold": 31,
+  "down_paths": 26,
+  "wins_on_down_paths": 26,
+  "up_paths": 14,
+  "wins_on_up_paths": 5,
+  "price_war_paths": 10,
+  "wins_on_price_war_paths": 10,
+  "never_traded": 4,
+  "fly_median": 10000.0,
   "buy_hold_median": 8038.79,
-  "fly_mean": 8723.35,
+  "fly_mean": 10066.04,
   "buy_hold_mean": 9210.82,
-  "fly_profitable": 13,
+  "fly_profitable": 17,
   "buy_hold_profitable": 14
+ },
+ "price_only_comparison": {
+  "median_path": {
+   "path": 307,
+   "ipo_price": 94.17,
+   "final_price": 75.74,
+   "fly_final": 7528.77,
+   "buy_hold_final": 8046.65,
+   "fly_day50": 10079.03,
+   "buy_spikes": 1403,
+   "sell_spikes": 290,
+   "buy_days": 48,
+   "sell_days": 58,
+   "dopamine_off_final": 7461.11
+  },
+  "monte_carlo": {
+   "paths": 40,
+   "fly_beat_buy_hold": 11,
+   "fly_median": 7949.36,
+   "buy_hold_median": 8038.79,
+   "fly_mean": 8723.35,
+   "buy_hold_mean": 9210.82,
+   "fly_profitable": 13,
+   "buy_hold_profitable": 14
+  }
  }
 }

@@ -16,4 +16,4 @@ t0 = time.time(); tr = trade(fly, px[hero], alloc=alloc, record=True)
 rec = fly.B.rec_buf[: fly.B.rec_n[0]].copy()
 print(tagname, "path", hero, "alloc", tr["alloc"], "final value", round(tr["nav"], 2), "buy&hold", round(tr["bh"], 2), f"[{time.time()-t0:.0f}s]")
 pickle.dump(dict(tag=tagname, hero=hero, px=px[hero], trade=tr, raster=rec,
-                 idx=dict(sug=fly.sug, bit=fly.bit, mn9=fly.mn9, dn=fly.dn)), open(f"results/trade_{tagname}.pkl", "wb"))
+                 idx=dict(sug=fly.sug, bit=fly.bit, mn9=fly.mn9, dn=fly.dn)), open(f"results/price_only/trade_{tagname}.pkl", "wb"))
