@@ -1,0 +1,25 @@
+Read this in a dry, posh British accent, like a witty BBC documentary narrator, at a brisk, lively pace. Pause briefly between paragraphs.
+
+I wired a real fruit fly brain to a Monte Carlo simulation of Anthropic's IPO. Then I let it trade.
+
+This is the FlyWire connectome. A hundred and twenty-seven thousand real neurons, fifteen million connections, simulated spike by spike.
+
+It never sees the stock price. It values the company only from the numbers reported so far: revenue, growth, margins. Below its fair value tastes like sugar, so it buys. Above it tastes bitter, so it sells. An earnings miss? Bitter.
+
+First, due diligence. I fed it all ninety-four pages of risk factors. Sixty-nine thousand words, one every millisecond.
+
+Every negative word, like catastrophic, harmful or shutdown, hit its bitter neurons. Seven hundred and ninety-four sell spikes, four hundred and four buys. So it passed on the IPO.
+
+Its fair value was eighty-four dollars. The stock priced at ninety-four and ran to a hundred and thirty-one. Way too bitter. The fly sat in cash for eighty-three days.
+
+Day eighty-four, the stock drops below fair value. Sugar. By day ninety-three, it's all in, at an average of sixty-six dollars.
+
+Then the stock fell to forty-five. Four earnings reports, four misses. It never sold a share.
+
+After one year: buy and hold, eight thousand and forty-seven dollars. The fly: eleven thousand five hundred and seventeen.
+
+Then I ran it through forty Monte Carlo years. It beat buy and hold in thirty. Impressive, until you notice the stock falls in twenty-six of them, and a fly sitting in cash wins those by default. When the stock went up, it won four out of fourteen.
+
+Then I turned off all its dopamine neurons. It made thirty-six dollars less.
+
+Fruit flies live about fifty days. This one would have died in cash, waiting for a better price. The code is on GitHub. The fly is not a registered investment adviser.

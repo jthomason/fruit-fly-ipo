@@ -151,12 +151,18 @@ python run_price_mc.py 0 2 40 0 & python run_price_mc.py 1 2 40 0; wait
 python run_record.py               # ~1.5 min, re-runs the median-path year recording every spike (results/full_raster.npz)
 python experiments/analyze_days.py # spike windows per trading day (results/daywin.json)
 python experiments/make_edges.py   # synapses leaving every neuron that ever fired (results/active_edges.npz)
-python make_video.py               # needs narration wavs in vo/ (not included)
+python make_video.py               # needs narration wavs vo/p1..p12.wav (not included; see below)
 python make_audio.py
 ```
 
 Speed is about 3 s of compute per second of fly time on a 2-core machine. Numba's Poisson draws depend on the
 seed and the thread, so spike counts can differ by a few percent on other hardware.
+
+## Narration
+
+One continuous Gemini TTS take (voice "puck", British accent) of `vo/narration_take.txt`, cut into the 12 lines at the
+word timestamps in `vo/narration_cuts.json`, with pauses over 0.22 s trimmed and the tempo raised 1.3x. Recording it as one
+take keeps the voice and accent consistent between lines. Captions are timed from Whisper word timestamps (`vo/stt_out.json`).
 
 ## The brain animation
 

@@ -43,15 +43,15 @@ for d in range(1, 253):
     if q > 0: add(tone(1500, 1700, 0.06, 0.10, 30), x); last = x
     elif q < 0: add(tone(420, 330, 0.08, 0.12, 25), x); last = x
 # reading: soft geiger clicks for sell spikes during reading window
-ch = pickle.load(open(R + "results/hero_normal.pkl", "rb"))["read"]["chunks"]
+ch = pickle.load(open(R + "results/read_normal.pkl", "rb"))["read"]["chunks"]
 RD0, RD1 = S0(4) + 0.4, S0(5) + 0.62 * du[5]
 click = rng.normal(0, 1, int(0.004 * SR)) * 0.10
 for j, c in enumerate(ch):
     if c["s"] and rng.random() < 0.35: add(click, RD0 + (RD1 - RD0) * j / len(ch), 0.8)
 add(tone(500, 1400, 0.4, 0.22), S0(2))
-add(tone(880, 880, 0.5, 0.22, 6) + tone(1320, 1320, 0.5, 0.12, 6), S0(5) + 0.72 * du[5])     # allocation 0 stamp
+add(tone(880, 880, 0.5, 0.22, 6) + tone(1320, 1320, 0.5, 0.12, 6), S0(5) + 0.88 * du[5])     # allocation 0 stamp
 add(tone(600, 250, 0.5, 0.25), S0(6) + 0.68 * du[6])
-add(tone(1000, 1500, 0.3, 0.2), S0(7) + 0.4 * du[7])
+add(tone(1000, 1500, 0.3, 0.2), S0(7) + 0.43 * du[7])
 add(tone(600, 250, 0.5, 0.25), S0(8) + 0.4 * du[8])
 add(tone(523, 523, 0.3, 0.2) + tone(659, 659, 0.3, 0.15), S0(9) + 1.0)
 add(tone(400, 150, 0.4, 0.3), S0(11))

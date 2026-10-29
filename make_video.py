@@ -474,7 +474,7 @@ def frame(fi):
         st(d, (514, 780), "every LM-positive word = sugar stimulus", F(MBOLD, 26), fill=GREEN)
         st(d, (514, 835), "1 word per ms · Loughran-McDonald finance dictionary", F(MONOR, 19), fill=GREY)
         tw0 = S0(5)
-        for k, (w_, at) in enumerate([("CATASTROPHIC", 1.7), ("HARMFUL", 2.7), ("SHUTDOWN", 3.6)]):
+        for k, (w_, at) in enumerate([("CATASTROPHIC", 1.45), ("HARMFUL", 2.35), ("SHUTDOWN", 2.9)]):
             if tw0 + at <= t < tw0 + 4.9:
                 stamp(img, t, tw0 + at, w_, RED, cx=514, cy=230 + k * 140, size=54)
         if t >= S0(5) + 0.88 * durs[5]:
@@ -487,17 +487,17 @@ def frame(fi):
         e = L[max(dd, 1) - 1]
         st(d, (BXY[2] - 16, BXY[1] + 22), f"shares {e['sh']:>3}  cash ${e['cash']:,.0f}", F(MONO, 19), fill=WHITE, anchor="rm")
         if S0(6) + 0.68 * durs[6] < t < S1(6) + 0.2: stamp(img, t, S0(6) + 0.68 * durs[6], f"STOCK ${px.max():.0f} vs FAIR ${int(FAIR[0])} → CASH", RED, cx=514, cy=420, size=40)
-        if S0(7) + 0.4 * durs[7] < t < S1(7) + 0.1: stamp(img, t, S0(7) + 0.4 * durs[7], "BELOW FAIR VALUE → ALL IN", GREEN, cx=514, cy=420, size=44)
+        if S0(7) + 0.43 * durs[7] < t < S1(7) + 0.1: stamp(img, t, S0(7) + 0.43 * durs[7], "BELOW FAIR VALUE → ALL IN", GREEN, cx=514, cy=420, size=44)
         if S0(8) + 0.4 * durs[8] < t < S1(8) + 0.2: stamp(img, t, S0(8) + 0.4 * durs[8], "4 EARNINGS MISSES · 0 SHARES SOLD", RED, cx=514, cy=420, size=36)
         if t > S0(9) + 1.0:
             stamp(img, t, S0(9) + 1.0, f"FLY ${NAV[-1]:,.0f}  vs  BUY&HOLD ${BH[-1]:,.0f}", GOLD, sub="after 252 trading days", cx=W / 2, cy=420, size=52)
     elif t < S0(11):
         hud(d, t, "MONTE CARLO OF THE FLY")
         u = lin(t, S0(10) + 0.2, S0(10) + 2.8)
-        mc_panel(d, t, 1040, 104, 1896, 896, u, ann=t > S0(10) + 4.24, ann2=t > S0(10) + 10.4)
+        mc_panel(d, t, 1040, 104, 1896, 896, u, ann=t > S0(10) + 4.65, ann2=t > S0(10) + 10.0)
         wins = sum(m["nav"] > m["bh"] for m in mc)
         box(d, (24, 670, 1004, 896))
-        if t > S0(10) + 3.52:
+        if t > S0(10) + 2.9:
             st(d, (514, 745), f"FLY WINS {wins}/{len(mc)}", F(MB, 60), fill=GOLD)
             dn = [m for m in mc if m["bh"] < 10000]; up = [m for m in mc if m["bh"] >= 10000]
             st(d, (514, 812), f"down years {sum(m['nav'] > m['bh'] for m in dn)}/{len(dn)} · up years {sum(m['nav'] > m['bh'] for m in up)}/{len(up)}", F(MONO, 24), fill=GREY)
