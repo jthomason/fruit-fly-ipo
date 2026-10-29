@@ -1,0 +1,12 @@
+/shiu
+/ann
+s1.htm
+s1.txt
+risk_factors.txt
+market/*.npz
+results/pos630.npz
+results/still_*
+vo/*.wav
+vo/*.mp3
+__pycache__/
+*.log

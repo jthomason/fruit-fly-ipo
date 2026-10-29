@@ -1,0 +1,1 @@
+This is the FlyWire connectome. A hundred twenty-seven thousand real neurons, fifteen million connections, simulated spike by spike.

@@ -1,0 +1,38 @@
+{
+ "reading": {
+  "words": 69169,
+  "lm_negative": 2774,
+  "lm_positive": 625,
+  "buy_spikes": 404,
+  "sell_spikes": 794,
+  "total_spikes": 184069,
+  "ipo_allocation": 0,
+  "dopamine_off": {
+   "buy_spikes": 409,
+   "sell_spikes": 789
+  }
+ },
+ "median_path": {
+  "path": 307,
+  "ipo_price": 94.17,
+  "final_price": 75.74,
+  "fly_final": 7528.77,
+  "buy_hold_final": 8046.65,
+  "fly_day50": 10079.03,
+  "buy_spikes": 1403,
+  "sell_spikes": 290,
+  "buy_days": 48,
+  "sell_days": 58,
+  "dopamine_off_final": 7461.11
+ },
+ "monte_carlo": {
+  "paths": 40,
+  "fly_beat_buy_hold": 11,
+  "fly_median": 7949.36,
+  "buy_hold_median": 8038.79,
+  "fly_mean": 8723.35,
+  "buy_hold_mean": 9210.82,
+  "fly_profitable": 13,
+  "buy_hold_profitable": 14
+ }
+}
