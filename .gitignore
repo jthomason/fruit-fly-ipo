@@ -10,3 +10,4 @@ vo/*.wav
 vo/*.mp3
 __pycache__/
 *.log
+results/pos630_3d.npz

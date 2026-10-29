@@ -148,12 +148,27 @@ python run_fund.py dopamine_off
 python run_fund_mc.py 0 2 40 & python run_fund_mc.py 1 2 40; wait   # ~30 min on 2 cores
 python run_price_trade.py          # optional: the price-only comparison
 python run_price_mc.py 0 2 40 0 & python run_price_mc.py 1 2 40 0; wait
+python run_record.py               # ~1.5 min, re-runs the median-path year recording every spike (results/full_raster.npz)
+python experiments/analyze_days.py # spike windows per trading day (results/daywin.json)
+python experiments/make_edges.py   # synapses leaving every neuron that ever fired (results/active_edges.npz)
 python make_video.py               # needs narration wavs in vo/ (not included)
 python make_audio.py
 ```
 
 Speed is about 3 s of compute per second of fly time on a 2-core machine. Numba's Poisson draws depend on the
 seed and the thread, so spike counts can differ by a few percent on other hardware.
+
+## The brain animation
+
+The brain panel in the video is drawn from the simulation, not made up. Every dot is one of the 127,400 neurons
+at its real FlyWire 3D position, tinted by superclass (optic, central, sensory, visual projection, descending,
+motor). The neurons that light up are the ones that spiked in the recorded trading run (`run_record.py`: same seed
+and inputs, all spikes kept, identical $11,516.91 result). The glowing lines are real connections (3 or more
+synapses) between neurons that fire during the run, lit when the presynaptic neuron just fired, and the moving pulses follow their strongest excitatory outputs.
+The slow-motion segments replay single 100 ms trading days spike by spike: a sugar day where MN9 fires
+(buy), a bitter day where DNge067 fires (sell), day 60 (the $131 peak: sell spikes, but no shares to sell) and day 84 (the first
+buy). The magenta glow in the dopamine scene marks the 5,670 dopaminergic neurons that the experiment silences.
+The brain is sparse: on a typical day only 60 to 400 neurons fire, because the model has no spontaneous activity.
 
 ## Caveats (honest ones)
 

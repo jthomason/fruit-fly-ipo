@@ -49,7 +49,7 @@ CAP = {1: "I wired a real fruit fly brain to a Monte Carlo simulation of Anthrop
        2: "This is the FlyWire connectome. 127,000 real neurons, 15 million connections, simulated spike by spike.",
        3: "It never sees the stock price. It values the company only from the numbers reported so far: revenue, growth, margins. Below its fair value tastes like sugar, so it buys. Above it tastes bitter, so it sells. An earnings miss? Bitter.",
        4: "First, due diligence. I fed it all 94 pages of risk factors. 69,000 words, one every millisecond.",
-       5: "Catastrophic. Harmful. Shutdown. Every negative word hit its bitter neurons. 794 sell spikes, 404 buys. It passed on the IPO.",
+       5: "Every negative word, like catastrophic, harmful or shutdown, hit its bitter neurons. 794 sell spikes, 404 buys. So it passed on the IPO.",
        6: "Its fair value was $84. The stock priced at $94 and ran to $131. Way too bitter. The fly sat in cash for 83 days.",
        7: "Day 84, the stock drops below fair value. Sugar. By day 93, it's all in, at an average of $66.",
        8: "Then the stock fell to $45. Four earnings reports, four misses. It never sold a share.",
@@ -150,8 +150,18 @@ def day_at(t):
     for (a, da), (b, db) in zip(KEY[:-1], KEY[1:]):
         if t <= b: return da + (db - da) * ease(lin(t, a, b)) if db - da > 60 else da + (db - da) * lin(t, a, b)
     return 252.0
-RD0, RD1 = S0(4) + 0.4, S0(5) + 0.62 * durs[5]  # reading playback window
+RD0, RD1 = S0(4) + 0.4, S0(5) + 0.58 * durs[5]  # reading playback window
 def chunk_at(t): return int(np.clip(lin(t, RD0, RD1) * len(chunks), 0, len(chunks)))
+from brain3d import Brain3D
+B3 = Brain3D(R, BW, BH_, idx); B3.load_raster(R)
+SMS = [(S0(3) + 0.55 * durs[3], S0(3) + 0.75 * durs[3], 86, "sugar"), (S0(3) + 0.75 * durs[3], S0(4) - 0.1, 22, "bitter"),
+       (S0(6) + 0.62 * durs[6], S1(6), 60, "day"), (S0(7) + 0.02, S0(7) + 0.5 * durs[7], 84, "day")]
+_dsp = {}
+def dsp(dd):
+    if dd not in _dsp: _dsp[dd] = B3.day_spikes(dd)
+    return _dsp[dd]
+LOOP = [dd for dd in range(84, 252) if L[dd - 1]["tot"] > 600]
+SCN = {"optic": 59374, "central": 28690, "sensory": 8126, "visual projection": 6335, "descending": 1086, "motor": 85}
 
 # ------------------------------------------------------------------ panels
 def hud(d, t, phase, sub=""):
@@ -342,32 +352,74 @@ REPO = open(R + "repo_url.txt").read().strip() if os.path.exists(R + "repo_url.t
 def frame(fi):
     t = fi / FPS
     img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
-    # ---------- choose brain activity + view
-    view = FULL; hl = None; hl_amt = 0
-    day = day_at(t); ci = chunk_at(t)
-    if t < S0(4):
-        # hook/intro/wiring: replay real trading-day activity (days 1..60 looped), sugar-heavy days are brightest
-        dd = 1 + int(t * 6) % 60; add_counts(L[dd - 1]["sp"], 1.0)
-        if t >= S0(3) - 0.3:
-            u = ease(lin(t, S0(3) - 0.3, S0(3) + 1.0)); view = lerpv(FULL, SEZ, u)
-            hl = [(idx["sug"], GREEN, 5), (idx["bit"], RED, 5), (idx["mn9"], (120, 255, 170), 9), (idx["dn"], (255, 120, 120), 9)]; hl_amt = u * 0.9
+    # ---------- brain (3D, real positions, real spikes, real synapses)
+    yaw = 0.25 + 0.55 * math.sin(2 * math.pi * t / 26)
+    day = day_at(t); ci = chunk_at(t); reveal = 1.0; dop = 0.0; decay = 0.6; smi = None
+    for k_, (ta, tb, dd_, kind) in enumerate(SMS):
+        if ta <= t < tb: smi = k_
+    def loop_days(rate=6.0, gain=1.0):
+        B3.add_counts(L[LOOP[int(t * rate) % len(LOOP)] - 1]["sp"], gain)
+    if t < S0(2):
+        zu = 0.12; loop_days()
+    elif t < S0(3):
+        zu = 0.0; reveal = ease(lin(t, S0(2), S0(2) + 3.0)) * 1.0001
+        if t > S0(2) + 3.2: loop_days(gain=0.8)
+    elif t < S0(4):
+        zu = 0.12 + 0.68 * ease(lin(t, S0(3) - 0.3, S0(3) + 1.2))
+        if smi is None: loop_days()
     elif t < S0(6):
-        u = ease(lin(t, S0(4), S0(4) + 0.6)); view = SEZ
+        zu = 0.8
         prev = getattr(frame, "ci", 0)
-        for c in chunks[prev:ci]: add_counts(c["sp"], 0.6)
+        for c in chunks[prev:ci]: B3.add_counts(c["sp"], 0.6)
         frame.ci = ci
-        hl = [(idx["bit"], RED, 5), (idx["dn"], (255, 120, 120), 9)]; hl_amt = 0.35
-    else:
-        u = ease(lin(t, S0(6), S0(6) + 1.2)); view = lerpv(SEZ, FULL, u * 0.65)
+    elif t < S1(9) + 0.25:
+        zu = 0.8 - 0.3 * ease(lin(t, S0(6), S0(6) + 1.2))
         prevd = getattr(frame, "dd", 0); nd = int(min(day, 252))
-        if nd > prevd:
-            for e in L[prevd:nd]: add_counts(e["sp"], 1.0 / max(1, (nd - prevd) ** 0.5))
+        if nd > prevd and smi is None:
+            for e in L[prevd:nd]: B3.add_counts(e["sp"], 1.0 / max(1, (nd - prevd) ** 0.5))
         frame.dd = max(prevd, nd)
-        if t > S1(9): view = lerpv(view, FULL, ease(lin(t, S1(9), S1(9) + 1)))
-    bimg = brain_frame(view, decay=0.6, hl=hl, hl_amt=hl_amt)
+    else:
+        zu = 0.5 - 0.4 * ease(lin(t, S1(9) + 0.25, S1(9) + 1.5)); loop_days(gain=0.8)
+        if S0(11) <= t < S0(12): dop = 1.0 - ease(lin(t, S0(11) + 0.3 * durs[11], S0(11) + 0.42 * durs[11]))
+    smtxt = None
+    if smi is not None:
+        ta, tb, dd_, kind = SMS[smi]; ms_, n_ = dsp(dd_); dl = 100.0
+        su = ease(lin(t, ta, ta + 0.35)) * (1 - ease(lin(t, tb - 0.25, tb)))
+        zu = zu + (0.85 - zu) * su
+        m0 = lin(t - 1 / FPS, ta, tb) * dl if t - 1 / FPS >= ta else -1; m1 = lin(t, ta, tb) * dl
+        if m0 < 0: B3.ACT[:] *= 0.2; B3.pulses = []
+        B3.play(ms_, n_, max(m0, 0), m1, t); decay = 0.84
+        sofar = n_[ms_ < m1]
+        smtxt = (dd_, kind, m1, len(np.unique(sofar)), int(np.isin(sofar, idx["mn9"]).sum()), int(np.isin(sofar, idx["dn"]).sum()))
+    bv = B3.view("w", yaw, zu)
+    bimg = B3.frame(bv, t, decay=decay, reveal=reveal, dop_amt=dop)
     img.paste(Image.fromarray(bimg), (BXY[0], BXY[1])); d.rectangle(BXY, outline=EDGE, width=2)
-    lab = "SUBESOPHAGEAL ZONE (taste + feeding)" if view["s"] > FULL["s"] * 1.6 else "WHOLE BRAIN · front view · real neuron positions"
+    lab = "SUBESOPHAGEAL ZONE · taste + feeding · 3D" if zu > 0.4 else "WHOLE BRAIN · 3D · real neuron positions"
     st(d, (BXY[0] + 16, BXY[1] + 22), lab, F(MONO, 17), fill=GREY, anchor="lm")
+    if zu > 0.3:
+        for key_, txt_, col_ in (("mn9", "MN9 → BUY", GREEN), ("dn", "DNge067 → SELL", RED)):
+            a_ = float(B3.ACT[idx[key_]].max()) / B3.ACT.dtype.type(1)
+            if a_ > 0.3:
+                sx, sy = B3.screen(bv, idx[key_]); sx += BXY[0]; sy += BXY[1]
+                if BXY[0] + 30 < sx < BXY[2] - 30 and BXY[1] + 30 < sy < BXY[3] - 30:
+                    rr = 16 + 6 * min(a_, 3)
+                    d.ellipse((sx - rr, sy - rr, sx + rr, sy + rr), outline=col_, width=3)
+                    st(d, (sx + rr + 8, sy - rr - 4), txt_, F(MBOLD, 22), fill=col_, anchor="lm", sw=3, sf=BG)
+    if smtxt:
+        dd_, kind, m1, nn, nb, ns = smtxt
+        ta, tb = SMS[smi][0], SMS[smi][1]
+        d.ellipse((BXY[2] - 236, BXY[1] + 48, BXY[2] - 222, BXY[1] + 62), fill=RED if int(t * 3) % 2 == 0 else (110, 30, 35))
+        st(d, (BXY[2] - 212, BXY[1] + 56), f"SLOW MOTION ×{(tb - ta) / 0.1:.0f}", F(MONO, 18), fill=WHITE, anchor="lm")
+        tl = {"sugar": "SUGAR DAY (cheap stock)", "bitter": "BITTER DAY (rich stock)", "day": f"REPLAY · TRADING DAY {dd_}"}[kind]
+        st(d, (BXY[0] + 16, BXY[3] - 64), tl, F(MBOLD, 22), fill=GOLD, anchor="lm", sw=3, sf=BG)
+        st(d, (BXY[0] + 16, BXY[3] - 30), f"{m1:5.1f} ms / 100 ms · {nn} neurons fired · BUY {nb} · SELL {ns}", F(MONO, 18), fill=WHITE, anchor="lm", sw=3, sf=BG)
+    if S0(2) <= t < S0(3):
+        yy = BXY[3] - 30; xx = BXY[0] + 16
+        cols = {"optic": (80, 120, 230), "central": (170, 120, 230), "sensory": (70, 200, 200), "visual projection": (100, 140, 240), "descending": (240, 90, 160), "motor": (90, 220, 150)}
+        for k_, v_ in SCN.items():
+            if reveal < 0.3: break
+            d.ellipse((xx, yy - 6, xx + 12, yy + 6), fill=cols[k_]); lbl = f"{k_} {v_:,}"
+            st(d, (xx + 18, yy), lbl, F(MONOR, 15), fill=GREY, anchor="lm"); xx += 30 + tw(lbl, F(MONOR, 15))
     # ---------- scene content
     if t < S0(2):
         hud(d, t, "BOOTING")
@@ -422,11 +474,11 @@ def frame(fi):
         st(d, (514, 780), "every LM-positive word = sugar stimulus", F(MBOLD, 26), fill=GREEN)
         st(d, (514, 835), "1 word per ms · Loughran-McDonald finance dictionary", F(MONOR, 19), fill=GREY)
         tw0 = S0(5)
-        for k, (w_, at) in enumerate([("CATASTROPHIC", 0.0), ("HARMFUL", 0.9), ("SHUTDOWN", 1.65)]):
-            if tw0 + at <= t < tw0 + 2.6:
+        for k, (w_, at) in enumerate([("CATASTROPHIC", 1.7), ("HARMFUL", 2.7), ("SHUTDOWN", 3.6)]):
+            if tw0 + at <= t < tw0 + 4.9:
                 stamp(img, t, tw0 + at, w_, RED, cx=514, cy=230 + k * 140, size=54)
-        if t >= S0(5) + 0.72 * durs[5]:
-            stamp(img, t, S0(5) + 0.72 * durs[5], "IPO ALLOCATION: 0 SHARES", GOLD, sub=f"net spikes {hero['read']['buy'] - hero['read']['sell']:+,} · it passed", cx=W / 2, cy=430)
+        if t >= S0(5) + 0.88 * durs[5]:
+            stamp(img, t, S0(5) + 0.88 * durs[5], "IPO ALLOCATION: 0 SHARES", GOLD, sub=f"net spikes {hero['read']['buy'] - hero['read']['sell']:+,} · it passed", cx=W / 2, cy=430)
     elif t < S1(9) + 0.25:
         dd = int(min(day, 252))
         hud(d, t, f"TRADING DAY {max(dd,1):>3}/252")
@@ -477,14 +529,20 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "stills":
         ts = [float(x) for x in sys.argv[2:]]
         for x in ts:
-            fi = int(x * FPS); ACT[:] = 0
-            frame.ci = chunk_at(max(fi - 10, 0) / FPS); frame.dd = int(min(day_at(max(fi - 10, 0) / FPS), 252))
-            for f_ in range(max(fi - 10, 0), fi): frame(f_)
+            fi = int(x * FPS); B3.ACT[:] = 0; B3.pulses = []
+            frame.ci = chunk_at(max(fi - 40, 0) / FPS); frame.dd = int(min(day_at(max(fi - 40, 0) / FPS), 252))
+            for f_ in range(max(fi - 40, 0), fi): frame(f_)
             frame(fi).save(R + f"results/still_{x:05.1f}.png")
         sys.exit()
+    out, f0, f1 = R + "results/video_silent.mp4", 0, NF
+    if len(sys.argv) > 1 and sys.argv[1] == "part":
+        f0, f1 = int(sys.argv[2]), min(int(sys.argv[3]), NF); out = R + f"results/vpart_{f0:05d}.mp4"
+        if f0 > 0:
+            w0 = max(f0 - 40, 0); frame.ci = chunk_at(w0 / FPS); frame.dd = int(min(day_at(w0 / FPS), 252))
+            for f_ in range(w0, f0): frame(f_)
     p = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-                          "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", R + "results/video_silent.mp4"], stdin=subprocess.PIPE)
-    for fi in range(NF):
+                          "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", out], stdin=subprocess.PIPE)
+    for fi in range(f0, f1):
         p.stdin.write(frame(fi).tobytes())
         if fi % 300 == 0: print(fi, NF, flush=True)
     p.stdin.close(); p.wait(); print("done", TOTAL)

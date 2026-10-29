@@ -8,3 +8,4 @@ python market/ant_ipo_mc.py > /dev/null      # writes market/ant_ipo_sim.npz (20
 python market/export_fundamentals.py         # same draws, plus the daily fair value, revenue surprises and price-war day
 python extract_s1.py                         # writes risk_factors.txt
 python experiments/positions.py              # neuron coordinates for the video
+python experiments/make_pos3d.py             # 3D neuron coordinates + cell classes for the brain animation
